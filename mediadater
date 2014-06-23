@@ -1,0 +1,209 @@
+#!/bin/bash
+
+#   Mediadater - A small utility for managing media files
+#   Copyright (C) 2014 Niklas Rosenqvist
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+function script_dir {
+	echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+}
+
+function script_name {
+	echo "$(basename $0)"
+}
+
+function ask {
+    read -n 1 -r -p "$1 (y/n) "
+	echo ""
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        return 0
+    else
+		return 1
+    fi
+}
+
+function rename {
+	#Make sure file exists
+	if [ ! -f "$1" ]; then
+		echo "The file \"$1\" can't be found."
+		return 1
+	fi
+
+	#Get media meta data
+	fullname="$(basename "$1")"
+	extension="${fullname##*.}"
+	filename="${fullname%.*}"
+	exifdata="$(exiftool -dateFormat "$dateformat" "$fullname")"
+	timestamp="$(echo "$exifdata" | grep 'Create Date')"
+	timestamp="${timestamp##*: }"
+	cameramodel="$(echo "$exifdata" | grep 'Camera Model Name')"
+	cameramodel="${cameramodel##*: }"
+
+	#Set name suffix (default is cameramodel)
+	if [ $suffixset -ne 0 ]; then
+		if [ ! -z "$cameramodel" ]; then
+			suffix="_$cameramodel"
+		else
+			suffix=""
+		fi
+	fi
+
+	newname="${prefix}${timestamp}${suffix}.$extension"
+
+	#Skip if name hasn't been changed
+	if [[ "$fullname" == "$newname" ]]; then
+		if [ $verbose -eq 0 ]; then
+			echo "Skipped \"$fullname\" - same name"
+		fi
+		continue
+	fi
+
+	#If newname already exist, loop until we find a unique name
+	if [ -e "$newname" ]; then
+		for i in $(seq -w 99); do
+			if [ $i -eq 99 ]; then
+				echo "ERROR: More than 98 files with the same timestamp."
+				exit 1
+			fi
+
+			newname="${prefix}${timestamp}${suffix}_${i}.$extension"
+
+			if [[ ! -e "$newname" ]] || [[ "$fullname" == "$newname" ]]; then
+				break
+			fi
+		done
+	fi
+
+	#Skip if name hasn't been changed
+	if [[ "$fullname" == "$newname" ]]; then
+		if [ $verbose -eq 0 ]; then
+			echo "Skipped \"$fullname\" - same name"
+		fi
+		continue
+	fi
+
+	#Rename
+	mv "$fullname" "$newname"
+
+	if [ $verbose -eq 0 ]; then
+		echo "Renamed \"$fullname\" -> \"$newname\""
+	fi
+
+	#Rename related XMP file if set to
+	if [ $xmp -eq 0 ] && [ -f "$fullname.xmp" ]; then
+		if [ $verbose -eq 0 ]; then
+			echo "Editing related XMP-file"
+		fi
+
+		sed -i "s/$fullname/$newname/g" "$fullname.xmp"
+		mv "$fullname.xmp" "$newname.xmp"
+	fi
+
+	#Successful
+	return 0
+}
+
+#variables
+xmp=1
+verbose=1
+customfind=1
+dateformat="%Y%m%d_%H%M%S"
+caseinsensitive=1
+suffix=""
+suffixset=1
+prefix=""
+supportedregex=".*\.\(3FR\|3G2\|3GP2\|3GP\|3GPP\|AIFF\|AIF\|AIFC\|APE\|ARW\|AVI\|BMP\|DIB\|BTF\|TIFF\|TIF\|CR2\|CRW\|CIFF\|CS1\|DCP\|DIVX\|DJVU\|DJV\|DNG\|DOC\|DOT\|DV\|DVB\|ERF\|FFF\|FFF\|FLAC\|FLV\|FPF\|FPX\|GIF\|HDP\|WDP\|HDR\|IIQ\|J2C\|JPC\|JP2\|JPM\|JPX\|JPEG\|JPG\|K25\|KDC\|LA\|M2TS\|MTS\|M2T\|TS\|M4A\|M4B\|M4P\|M4V\|MEF\|MIFF\|MIF\|MKA\|MKV\|MOS\|MOV\|QT\|MP3\|MP4\|MPC\|MPEG\|MPG\|M2V\|MPO\|MQV\|MRW\|NEF\|NRW\|OFR\|OGG\|ORF\|PAC\|PCD\|PEF\|PGF\|PICT\|PCT\|PMP\|PNG\|JNG\|MNG\|PSD\|PSB\|PSP\|PSPIMAGE\|QTIF\|QTI\|QIF\|RA\|RAF\|RAW\|RAW\|RM\|RV\|RMVB\|RW2\|RWL\|SR2\|SRF\|SRW\|THM\|TIFF\|TIF\|VOB\|WAV\|WEBM\|WEBP\|WMA\|WMV\|WV\|X3F\)"
+basecmd="find . -maxdepth 1 -type f"
+
+#Parse arguments
+while getopts ":f:id:vp:s:x" opt; do
+	case $opt in
+		f) #find arguments
+			basecmd="$OPTARG"
+			customfind=0
+			;;
+    	i) #case insensitive
+		    caseinsensitive=0
+		    ;;
+		d) #date format
+			dateformat="$OPTARG"
+			;;
+		v) #verbose
+			verbose=0
+			;;
+		p) #prefix
+			prefix="$OPTARG"
+			;;
+		s) #suffix
+			suffix="$OPTARG"
+			suffixset=0
+			;;
+		x) #also rename darktable XMP-file
+			xmp=0
+			;;
+    	\?)
+    		echo "Invalid option: -$OPTARG" >&2
+			exit 1
+    		;;
+		:)
+    		echo "Option -$OPTARG requires an argument." >&2
+    		exit 1
+    		;;
+	esac
+done
+
+shift $((OPTIND-1))
+
+#Custom find command
+if [ $customfind -eq 0 ]; then
+	$basecmd | sort -V | while read file
+	do
+		rename "$file"
+	done
+else
+	#Files specified
+	if [ $# -gt 0 ]; then
+		for file in "$@"
+		do
+			if [ $caseinsensitive -eq 0 ]; then
+				cmd="$basecmd -iname $file"
+			else
+				cmd="$basecmd -name $file"
+			fi
+
+			$cmd | sort -V | while read file
+			do
+				rename "$file"
+			done
+		done
+	#No files specified (directory mode)
+	else
+		ask "You haven't specified a file or pattern to search for. This means that you will rename every supported file in this directory. Do you wish to continue?"
+
+		if [ $? -ne 0 ]; then
+			echo "Aborting..."
+			exit
+		fi
+
+		#Find all supported file types
+		$basecmd -iregex "$supportedregex" | sort -V | while read file
+		do
+			rename "$file"
+		done
+	fi
+fi
+
+exit 0
