@@ -16,6 +16,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#Functions
 function script_dir {
 	echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 }
@@ -33,6 +34,12 @@ function ask {
     else
 		return 1
     fi
+}
+
+function join {
+	local IFS="$1"
+	shift
+	echo "$*"
 }
 
 function rename {
@@ -119,25 +126,18 @@ function rename {
 #variables
 xmp=1
 verbose=1
-customfind=1
 dateformat="%Y%m%d_%H%M%S"
-caseinsensitive=1
 suffix=""
 suffixset=1
 prefix=""
-supportedregex=".*\.\(3FR\|3G2\|3GP2\|3GP\|3GPP\|AIFF\|AIF\|AIFC\|APE\|ARW\|AVI\|BMP\|DIB\|BTF\|TIFF\|TIF\|CR2\|CRW\|CIFF\|CS1\|DCP\|DIVX\|DJVU\|DJV\|DNG\|DOC\|DOT\|DV\|DVB\|ERF\|FFF\|FFF\|FLAC\|FLV\|FPF\|FPX\|GIF\|HDP\|WDP\|HDR\|IIQ\|J2C\|JPC\|JP2\|JPM\|JPX\|JPEG\|JPG\|K25\|KDC\|LA\|M2TS\|MTS\|M2T\|TS\|M4A\|M4B\|M4P\|M4V\|MEF\|MIFF\|MIF\|MKA\|MKV\|MOS\|MOV\|QT\|MP3\|MP4\|MPC\|MPEG\|MPG\|M2V\|MPO\|MQV\|MRW\|NEF\|NRW\|OFR\|OGG\|ORF\|PAC\|PCD\|PEF\|PGF\|PICT\|PCT\|PMP\|PNG\|JNG\|MNG\|PSD\|PSB\|PSP\|PSPIMAGE\|QTIF\|QTI\|QIF\|RA\|RAF\|RAW\|RAW\|RM\|RV\|RMVB\|RW2\|RWL\|SR2\|SRF\|SRW\|THM\|TIFF\|TIF\|VOB\|WAV\|WEBM\|WEBP\|WMA\|WMV\|WV\|X3F\)"
-basecmd="find . -maxdepth 1 -type f"
+supportedformats=(3FR 3G2 3GP2 3GP 3GPP AIFF AIF AIFC APE ARW AVI BMP DIB BTF TIFF TIF CR2 CRW CIFF CS1 DCP DIVX DJVU DJV DNG DOC DOT DV DVB ERF FFF FFF FLAC FLV FPF FPX GIF HDP WDP HDR IIQ J2C JPC JP2 JPM JPX JPEG JPG K25 KDC LA M2TS MTS M2T TS M4A M4B M4P M4V MEF MIFF MIF MKA MKV MOS MOV QT MP3 MP4 MPC MPEG MPG M2V MPO MQV MRW NEF NRW OFR OGG ORF PAC PCD PEF PGF PICT PCT PMP PNG JNG MNG PSD PSB PSP PSPIMAGE QTIF QTI QIF RA RAF RAW RAW RM RV RMVB RW2 RWL SR2 SRF SRW THM TIFF TIF VOB WAV WEBM WEBP WMA WMV WV X3F)
+regextest="($(join "|" "${supportedformats[@]}"))\$"
+regexfind=".*\.\($(join "|" "${supportedformats[@]}")\)"
+regexfind="${regexfind//|/\|}"
 
 #Parse arguments
 while getopts ":f:id:vp:s:x" opt; do
 	case $opt in
-		f) #find arguments
-			basecmd="$OPTARG"
-			customfind=0
-			;;
-    	i) #case insensitive
-		    caseinsensitive=0
-		    ;;
 		d) #date format
 			dateformat="$OPTARG"
 			;;
@@ -154,7 +154,7 @@ while getopts ":f:id:vp:s:x" opt; do
 		x) #also rename darktable XMP-file
 			xmp=0
 			;;
-    	\?)
+		\?)
     		echo "Invalid option: -$OPTARG" >&2
 			exit 1
     		;;
@@ -167,27 +167,29 @@ done
 
 shift $((OPTIND-1))
 
-#Custom find command
-if [ $customfind -eq 0 ]; then
-	$basecmd | sort -V | while read file
-	do
-		rename "$file"
+#Make regex case insensitive
+shopt -s nocasematch
+
+#Process pipe input
+if readlink /proc/$$/fd/0 | grep -q "^pipe:"; then
+	#Read arguments from STDIN
+	IFS=$'\n' read -d '' -r -a arguments
+
+	for file in "${arguments[@]}"; do
+		if [[ "$file" =~ $regextest ]]; then
+			rename "$file"
+		fi
 	done
-else
+#Terminal input
+elif file $( readlink /proc/$$/fd/0 ) | grep -q "character special"; then
 	#Files specified
 	if [ $# -gt 0 ]; then
+		#Loop through files
 		for file in "$@"
 		do
-			if [ $caseinsensitive -eq 0 ]; then
-				cmd="$basecmd -iname $file"
-			else
-				cmd="$basecmd -name $file"
-			fi
-
-			$cmd | sort -V | while read file
-			do
+			if [[ "$file" =~ $regextest ]]; then
 				rename "$file"
-			done
+			fi
 		done
 	#No files specified (directory mode)
 	else
@@ -195,15 +197,23 @@ else
 
 		if [ $? -ne 0 ]; then
 			echo "Aborting..."
-			exit
+			exit 0
 		fi
 
 		#Find all supported file types
-		$basecmd -iregex "$supportedregex" | sort -V | while read file
+		find . -maxdepth 1 -type f -iregex "$regexfind" | sort -V | while read file
 		do
 			rename "$file"
 		done
 	fi
+#File input
+else
+	while read file
+	do
+	    if [[ "$file" =~ $regextest ]]; then
+			rename "$file"
+		fi
+	done
 fi
 
 exit 0
