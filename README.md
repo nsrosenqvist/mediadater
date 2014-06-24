@@ -24,6 +24,8 @@ mediadater -vx -s "My friends camera" DSC_*.JPG
 
 You can specify the files to rename in several different ways. You can specify them, pipe the input, use file input, or even run with nothing specified at all and the script will use `find` to locate every supported file in the current working directory, but first prompt you and ask if that is really what you want to do.
 
+Note: Due to the nature of the `getopts` argument parsing you cannot specify the files before the parameters so make sure to set them in the right order. A warning might be implemented later, patches are welcome.
+
 ##Parameters
 
 Parameter | Explanation
