@@ -31,5 +31,5 @@ Parameter | Explanation
 -d        | Set a date format for the file names using the `strftime` syntax.
 -v        | Print the changes being made.
 -p        | Prefix the file name (before the date).
--s        | Suffix, by default it tries to use the camera model but it can be helpful to use a custom suffix. E.g.
+-s        | Suffix, by default it tries to use the camera model but it can be helpful to use a custom suffix, for example if you want to name files from different occasions, like "Vacation" and "Wedding".
 -x        | If a related [Darktable](http://www.darktable.org/) XMP-file is found this will also edit it so that it's still connected to the new file name.
