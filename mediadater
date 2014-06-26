@@ -104,19 +104,20 @@ function rename {
 
 	#Rename
 	mv "$fullname" "$newname"
-
-	if [ $verbose -eq 0 ]; then
-		echo "Renamed \"$fullname\" -> \"$newname\""
-	fi
+	vmsg="Renamed \"$fullname\" -> \"$newname\""
 
 	#Rename related XMP file if set to
 	if [ $xmp -eq 0 ] && [ -f "$fullname.xmp" ]; then
-		if [ $verbose -eq 0 ]; then
-			echo "Editing related XMP-file"
-		fi
-
 		sed -i "s/$fullname/$newname/g" "$fullname.xmp"
 		mv "$fullname.xmp" "$newname.xmp"
+
+		if [ $verbose -eq 0 ]; then
+			vmsg="${vmsg} and edited related XMP-file"
+		fi
+	fi
+	
+	if [ $verbose -eq 0 ]; then
+		echo "${vmsg}."
 	fi
 
 	#Successful
