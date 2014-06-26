@@ -11,7 +11,7 @@ chmod +x mediadater
 
 It also requires `sed` which is probably included in your distribution and `exiftool` which is in the Ubuntu repositories:
 ```
-sudo apt-get install exiftool
+sudo apt-get install libimage-exiftool-perl
 ```
 
 ##Usage
