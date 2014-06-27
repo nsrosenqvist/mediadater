@@ -230,8 +230,11 @@ elif file $( readlink /proc/$$/fd/0 ) | grep -q "character special"; then
 		fi
 
 		#Find all supported file types
+		#
+		IFS=$'\n'
 		files=($(find . -maxdepth 1 -type f -iregex "$regexfind" | sort -V))
 
+		
 		for file in "${files[@]}"
 		do
 			echo -ne "$counter/${#files[@]}:\t"
