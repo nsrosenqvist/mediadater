@@ -83,7 +83,7 @@ function rename {
 		if [ $verbose -eq 0 ]; then
 			log "Skipped \"$fullname\" - same name"
 		fi
-		continue
+		return 0
 	fi
 
 	#If newname already exist, loop until we find a unique name
@@ -107,7 +107,7 @@ function rename {
 		if [ $verbose -eq 0 ]; then
 			log "Skipped \"$fullname\" - same name"
 		fi
-		continue
+		return 0
 	fi
 
 	#Rename
@@ -187,6 +187,7 @@ shift $((OPTIND-1))
 
 #Make regex case insensitive
 shopt -s nocasematch
+counter=1
 
 #Process pipe input
 if readlink /proc/$$/fd/0 | grep -q "^pipe:"; then
@@ -195,8 +196,13 @@ if readlink /proc/$$/fd/0 | grep -q "^pipe:"; then
 
 	for file in "${arguments[@]}"; do
 		if [[ "$file" =~ $regextest ]]; then
+			echo -ne "$counter/${#arguments[@]}:\t"
 			rename "$file"
+		else
+			echo -e "$counter/${#arguments[@]}:\t\"$file\" is not of a supported file type."
 		fi
+
+		counter=$(($counter+1))
 	done
 #Terminal input
 elif file $( readlink /proc/$$/fd/0 ) | grep -q "character special"; then
@@ -206,8 +212,13 @@ elif file $( readlink /proc/$$/fd/0 ) | grep -q "character special"; then
 		for file in "$@"
 		do
 			if [[ "$file" =~ $regextest ]]; then
+				echo -ne "$counter/$#:\t"
 				rename "$file"
+			else
+				echo -e "$counter/$#:\t\"$file\" is not of a supported file type."
 			fi
+
+			counter=$(($counter+1))
 		done
 	#No files specified (directory mode)
 	else
@@ -219,18 +230,34 @@ elif file $( readlink /proc/$$/fd/0 ) | grep -q "character special"; then
 		fi
 
 		#Find all supported file types
-		find . -maxdepth 1 -type f -iregex "$regexfind" | sort -V | while read file
+		files=($(find . -maxdepth 1 -type f -iregex "$regexfind" | sort -V))
+
+		for file in "${files[@]}"
 		do
+			echo -ne "$counter/${#files[@]}:\t"
 			rename "$file"
+			counter=$(($counter+1))
 		done
 	fi
 #File input
 else
+	#Get file list so that we can show the progress
+	files=()
 	while read file
 	do
-	    if [[ "$file" =~ $regextest ]]; then
+		files+=("$file")
+	done
+
+	for file in "${files[@]}"
+	do
+		if [[ "$file" =~ $regextest ]]; then
+			echo -ne "$counter/${#files[@]}:\t"
 			rename "$file"
+		else
+			echo -e "$counter/${#files[@]}:\t\"$file\" is not of a supported file type."
 		fi
+
+		counter=$(($counter+1))
 	done
 fi
 
