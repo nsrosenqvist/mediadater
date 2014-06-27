@@ -42,10 +42,18 @@ function join {
 	echo "$*"
 }
 
+function log {
+	if [ $logging -eq 0 ]; then
+		echo "$1" | tee -a "$logfile"
+	else
+		echo "$1"
+	fi
+}
+
 function rename {
 	#Make sure file exists
 	if [ ! -f "$1" ]; then
-		echo "The file \"$1\" can't be found."
+		log "The file \"$1\" can't be found."
 		return 1
 	fi
 
@@ -73,7 +81,7 @@ function rename {
 	#Skip if name hasn't been changed
 	if [[ "$fullname" == "$newname" ]]; then
 		if [ $verbose -eq 0 ]; then
-			echo "Skipped \"$fullname\" - same name"
+			log "Skipped \"$fullname\" - same name"
 		fi
 		continue
 	fi
@@ -97,7 +105,7 @@ function rename {
 	#Skip if name hasn't been changed
 	if [[ "$fullname" == "$newname" ]]; then
 		if [ $verbose -eq 0 ]; then
-			echo "Skipped \"$fullname\" - same name"
+			log "Skipped \"$fullname\" - same name"
 		fi
 		continue
 	fi
@@ -117,7 +125,7 @@ function rename {
 	fi
 
 	if [ $verbose -eq 0 ]; then
-		echo "${vmsg}."
+		log "${vmsg}."
 	fi
 
 	#Successful
@@ -130,6 +138,8 @@ verbose=1
 dateformat="%Y%m%d_%H%M%S"
 suffix=""
 suffixset=1
+logging=1
+logfile="mediadater_log.txt"
 prefix=""
 supportedformats=(3FR 3G2 3GP2 3GP 3GPP AIFF AIF AIFC APE ARW AVI BMP DIB BTF TIFF TIF CR2 CRW CIFF CS1 DCP DIVX DJVU DJV DNG DV DVB ERF FFF FFF FLAC FLV FPF FPX GIF HDP WDP HDR IIQ J2C JPC JP2 JPM JPX JPEG JPG K25 KDC LA M2TS MTS M2T TS M4A M4B M4P M4V MEF MIFF MIF MKA MKV MOS MOV QT MP3 MP4 MPC MPEG MPG M2V MPO MQV MRW NEF NRW OFR OGG ORF PAC PCD PEF PGF PICT PCT PMP PNG JNG MNG PSD PSB PSP PSPIMAGE QTIF QTI QIF RA RAF RAW RAW RM RV RMVB RW2 RWL SR2 SRF SRW THM TIFF TIF VOB WAV WEBM WEBP WMA WMV WV X3F)
 regextest="($(join "|" "${supportedformats[@]}"))\$"
@@ -137,7 +147,7 @@ regexfind=".*\.\($(join "|" "${supportedformats[@]}")\)"
 regexfind="${regexfind//|/\|}"
 
 #Parse arguments
-while getopts ":f:id:vp:s:x" opt; do
+while getopts ":f:id:vp:s:xl" opt; do
 	case $opt in
 		d) #date format
 			dateformat="$OPTARG"
@@ -154,6 +164,13 @@ while getopts ":f:id:vp:s:x" opt; do
 			;;
 		x) #also rename darktable XMP-file
 			xmp=0
+			;;
+		l) #Log output
+			if [ -e "$logfile" ]; then
+				rm "$logfile"
+			fi
+
+			logging=0
 			;;
 		\?)
     		echo "Invalid option: -$OPTARG" >&2

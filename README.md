@@ -33,3 +33,4 @@ Parameter | Explanation
 -p        | Prefix the file name (before the date).
 -s        | Suffix, by default it tries to use the camera model but it can be helpful to use a custom suffix, for example if you want to name files from different occasions, like "Vacation" and "Wedding".
 -x        | If a related [Darktable](http://www.darktable.org/) XMP-file is found this will also edit it so that it's still connected to the new file name.
+-l        | Log the file changes to "mediadater_log.txt" which will be created in the current working directory. Good if you want to make sure that everything went alright.
