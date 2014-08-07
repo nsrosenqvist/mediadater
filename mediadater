@@ -58,13 +58,13 @@ function rename {
 	fi
 
 	#Get media meta data
-	fullname="$(basename "$1")"
-	extension="${fullname##*.}"
-	filename="${fullname%.*}"
-	exifdata="$(exiftool -dateFormat "$dateformat" "$fullname")"
-	timestamp="$(echo "$exifdata" | grep 'Create Date')"
+	local fullname="$(basename "$1")"
+	local extension="${fullname##*.}"
+	local filename="${fullname%.*}"
+	local exifdata="$(exiftool -dateFormat "$dateformat" "$fullname")"
+	local timestamp="$(echo "$exifdata" | grep 'Create Date')"
 	timestamp="${timestamp##*: }"
-	cameramodel="$(echo "$exifdata" | grep 'Camera Model Name')"
+	local cameramodel="$(echo "$exifdata" | grep 'Camera Model Name')"
 	cameramodel="${cameramodel##*: }"
 
 	#Set name suffix (default is cameramodel)
@@ -76,7 +76,7 @@ function rename {
 		fi
 	fi
 
-	newname="${prefix}${timestamp}${suffix}.$extension"
+	local newname="${prefix}${timestamp}${suffix}.$extension"
 
 	#Skip if name hasn't been changed
 	if [[ "$fullname" == "$newname" ]]; then
@@ -112,7 +112,7 @@ function rename {
 
 	#Rename
 	mv "$fullname" "$newname"
-	vmsg="Renamed \"$fullname\" -> \"$newname\""
+	local vmsg="Renamed \"$fullname\" -> \"$newname\""
 
 	#Rename related XMP file if set to
 	if [ $xmp -eq 0 ] && [ -f "$fullname.xmp" ]; then
@@ -132,7 +132,7 @@ function rename {
 	return 0
 }
 
-#variables
+# Variables
 xmp=1
 verbose=1
 dateformat="%Y%m%d_%H%M%S"
@@ -144,7 +144,7 @@ prefix=""
 supportedformats=(3FR 3G2 3GP2 3GP 3GPP AIFF AIF AIFC APE ARW AVI BMP DIB BTF TIFF TIF CR2 CRW CIFF CS1 DCP DIVX DJVU DJV DNG DV DVB ERF FFF FFF FLAC FLV FPF FPX GIF HDP WDP HDR IIQ J2C JPC JP2 JPM JPX JPEG JPG K25 KDC LA M2TS MTS M2T TS M4A M4B M4P M4V MEF MIFF MIF MKA MKV MOS MOV QT MP3 MP4 MPC MPEG MPG M2V MPO MQV MRW NEF NRW OFR OGG ORF PAC PCD PEF PGF PICT PCT PMP PNG JNG MNG PSD PSB PSP PSPIMAGE QTIF QTI QIF RA RAF RAW RAW RM RV RMVB RW2 RWL SR2 SRF SRW THM TIFF TIF VOB WAV WEBM WEBP WMA WMV WV X3F)
 regextest="($(join "|" "${supportedformats[@]}"))\$"
 regexfind=".*\.\($(join "|" "${supportedformats[@]}")\)"
-regexfind="${regexfind//|/\|}"
+regexfind="${regexfind//|/\\|}"
 
 #Parse arguments
 while getopts ":f:id:vp:s:xl" opt; do
@@ -230,11 +230,9 @@ elif file $( readlink /proc/$$/fd/0 ) | grep -q "character special"; then
 		fi
 
 		#Find all supported file types
-		#
 		IFS=$'\n'
 		files=($(find . -maxdepth 1 -type f -iregex "$regexfind" | sort -V))
 
-		
 		for file in "${files[@]}"
 		do
 			echo -ne "$counter/${#files[@]}:\t"
