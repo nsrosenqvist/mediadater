@@ -3,10 +3,10 @@ Mediadater
 
 Mediadater is a small BASH CLI utility for Linux, used to rename media files created by recording devices. By default it renames the files to the date the file was created, plus the camera model. It's behaviour is very flexible and it can work with all picture, audio and video files that [Exiftool supports](https://en.wikipedia.org/wiki/ExifTool#Supported_file_types). It's licensed with the GNU GPLv3 License.
 
-##Installation
+## Installation
 The easiest way to install is to clone the repository and then install with `make`:
 ```bash
-git clone https://github.com/nsrosenqvist/quickscript.git && cd quickscript
+git clone https://github.com/nsrosenqvist/mediadater.git && cd mediadater
 make && sudo make install
 ```
 
@@ -15,7 +15,7 @@ The script requires `exiftool` which is in the Ubuntu repositories:
 sudo apt-get install libimage-exiftool-perl
 ```
 
-##Usage
+## Usage
 The argument you provide can either be a file or multiple files as separate arguments (and even a pattern through shell expansion). By default the file is named after the created date followed by the camera model if the tag is available (e.g. `20140101_122301_Nikon D60.jpg`).
 
 Example usage:
@@ -27,7 +27,7 @@ You can specify the files to rename in several different ways. You can specify t
 
 Note: Due to the nature of the `getopts` argument parsing you cannot specify the files before the parameters so make sure to set them in the right order. A warning might be implemented later, patches are welcome.
 
-##Parameters
+## Parameters
 
 Parameter | Explanation
 --------- | -----------
