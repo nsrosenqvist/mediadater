@@ -125,7 +125,7 @@ function rename {
 	fi
 
 	if [ $verbose -eq 0 ]; then
-		log "${vmsg}."
+		log "${vmsg}"
 	fi
 
 	#Successful
