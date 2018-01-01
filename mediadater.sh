@@ -66,6 +66,14 @@ function rename {
 	timestamp="${timestamp##*: }"
 	local cameramodel="$(echo "$exifdata" | grep 'Camera Model Name')"
 	cameramodel="${cameramodel##*: }"
+    
+    #Skip if creation date can't be determined
+	if [ -z "$timestamp" ]; then
+		if [ $verbose -eq 0 ]; then
+			log "Skipped \"$fullname\" - Couldn't determine file creation date"
+		fi
+		return 0
+	fi
 
 	#Set name suffix (default is cameramodel)
 	if [ $suffixset -ne 0 ]; then
